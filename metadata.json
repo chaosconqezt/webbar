@@ -1,0 +1,6 @@
+{
+  "name": "foobar-web",
+  "description": "Web-based music player with foobar2000 dark mode aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

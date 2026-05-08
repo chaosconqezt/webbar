@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-fb-bg: #0a0a0a;
+  --color-fb-text: #cccccc;
+  --color-fb-hl: #222222;
+  --color-fb-border: #333333;
+}
+
+@layer base {
+  body {
+    @apply bg-fb-bg text-fb-text font-sans;
+    font-size: 12px;
+  }
+}
