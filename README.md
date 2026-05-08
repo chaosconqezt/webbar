@@ -1,4 +1,4 @@
-146% Viecode
+# 146% Vibecode!
 
 ## Run Locally
 
