@@ -45,12 +45,12 @@ async function getTree(dir: string, baseDir: string): Promise<any> {
 app.get('/api/tree', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
-    console.log(`[GET /api/tree] Reading from: ${MUSIC_DIR}`);
+    // console.log(`[GET /api/tree] Reading from: ${MUSIC_DIR}`);
     // Ensure the music directory exists
     await fsp.mkdir(MUSIC_DIR, { recursive: true });
     
     const entries = await fsp.readdir(MUSIC_DIR);
-    console.log('[GET /api/tree] Root entries:', entries);
+    // console.log('[GET /api/tree] Root entries:', entries);
 
     const tree = [{
       name: 'music',
@@ -78,7 +78,7 @@ app.get('/api/cover', async (req, res) => {
     }
 
     const files = await fsp.readdir(dirPath);
-    console.log(`[api/cover] Folder: ${folderPath}, Files found: ${files.length}`);
+    // console.log(`[api/cover] Folder: ${folderPath}, Files found: ${files.length}`);
     
     // 1. Look for common cover filenames first (fastest)
     const coverFiles = files.filter(f => {
@@ -96,14 +96,14 @@ app.get('/api/cover', async (req, res) => {
       return prio(a) - prio(b);
     });
 
-    console.log(`[api/cover] Potential cover files:`, coverFiles);
+    // console.log(`[api/cover] Potential cover files:`, coverFiles);
 
     for (const f of coverFiles) {
       const fullPath = path.join(dirPath, f);
       try {
         const stats = fs.statSync(fullPath);
         if (stats.size > 0) {
-          console.log(`[api/cover] Serving file: ${fullPath}`);
+          // console.log(`[api/cover] Serving file: ${fullPath}`);
           return res.sendFile(fullPath);
         }
       } catch (e) {
@@ -119,13 +119,13 @@ app.get('/api/cover', async (req, res) => {
 
     if (audioFile) {
       const filePath = path.join(dirPath, audioFile);
-      console.log(`[api/cover] Attempting extraction from: ${filePath}`);
+      // console.log(`[api/cover] Attempting extraction from: ${filePath}`);
       try {
         const metadata = await parseFile(filePath);
         const picture = metadata.common.picture && metadata.common.picture[0];
         
         if (picture) {
-          console.log(`[api/cover] Found embedded cover, format: ${picture.format}`);
+          // console.log(`[api/cover] Found embedded cover, format: ${picture.format}`);
           res.setHeader('Content-Type', picture.format);
           res.setHeader('Cache-Control', 'public, max-age=3600');
           return res.send(picture.data);
@@ -135,7 +135,7 @@ app.get('/api/cover', async (req, res) => {
       }
     }
 
-    console.log(`[api/cover] No cover found for ${folderPath}`);
+    // console.log(`[api/cover] No cover found for ${folderPath}`);
     res.status(404).send('Not found');
   } catch (e) {
     console.error('Error in /api/cover:', e);
@@ -148,7 +148,7 @@ app.get('/api/folder-content', async (req, res) => {
   try {
     const relativePath = (req.query.path as string) || '';
     const fullPath = path.join(MUSIC_DIR, relativePath);
-    console.log(`[GET /api/folder-content] Path: ${relativePath} -> Full: ${fullPath}`);
+    // console.log(`[GET /api/folder-content] Path: ${relativePath} -> Full: ${fullPath}`);
     
     // Prevent directory traversal
     if (!fullPath.startsWith(MUSIC_DIR)) {

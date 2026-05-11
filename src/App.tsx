@@ -26,17 +26,17 @@ interface Track {
 
 // --- Components ---
 
-function FolderNode({
-  node,
-  level,
-  onSelectFolder,
-  selectedPath
-}: {
+const FolderNode: React.FC<{
   node: TreeNode;
   level: number;
   onSelectFolder: (path: string) => void;
   selectedPath: string | null;
-}) {
+}> = ({
+  node,
+  level,
+  onSelectFolder,
+  selectedPath
+}) => {
   const [expanded, setExpanded] = useState(false);
   const hasChildren = node.children && node.children.length > 0;
   
@@ -103,7 +103,25 @@ export default function App() {
   
   const [shuffle, setShuffle] = useState(false);
   
+  const [volume, setVolume] = useState(1);
+  
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Sync volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  // Volume interaction
+  const handleVolumeClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const bounds = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - bounds.left;
+    let newVolume = clickX / bounds.width;
+    newVolume = Math.max(0, Math.min(1, newVolume));
+    setVolume(newVolume);
+  };
 
   const refreshTree = () => {
     setRefreshKey(prev => prev + 1);
@@ -147,7 +165,7 @@ export default function App() {
     fetch('/api/tree')
       .then(res => res.json())
       .then(data => {
-        console.log('Tree loaded:', data);
+        // console.log('Tree loaded:', data);
         setTree(data);
       })
       .catch(err => console.error("Could not fetch tree:", err));
@@ -169,12 +187,12 @@ export default function App() {
   useEffect(() => {
     if (playingTrack && audioRef.current) {
       const streamUrl = `/api/stream?path=${encodeURIComponent(playingTrack.path)}`;
-      console.log('Attempting to play track:', playingTrack.title, 'URL:', streamUrl);
+      // console.log('Attempting to play track:', playingTrack.title, 'URL:', streamUrl);
       
       audioRef.current.src = streamUrl;
       audioRef.current.play()
         .then(() => {
-          console.log('Playback started successfully');
+          // console.log('Playback started successfully');
           setIsPlaying(true);
         })
         .catch(e => {
@@ -182,7 +200,7 @@ export default function App() {
           setIsPlaying(false);
         });
     } else if (!playingTrack && audioRef.current) {
-      console.log('Stopping playback - no track selected');
+      // console.log('Stopping playback - no track selected');
       audioRef.current.pause();
       audioRef.current.src = '';
       setIsPlaying(false);
@@ -310,13 +328,13 @@ export default function App() {
 
           {/* Random */}
           <button 
-            onClick={playRandom}
-            className="w-9 h-9 flex items-center justify-center hover:bg-[#222222] transition-colors group relative"
-            title="Random"
+            onClick={() => setShuffle(!shuffle)}
+            className={`w-9 h-9 flex items-center justify-center hover:bg-[#222222] transition-colors group relative ${shuffle ? 'bg-[#222] opacity-100' : 'opacity-60 hover:opacity-100'}`}
+            title="Random (Shuffle)"
           >
             <div className="flex items-center group-active:scale-95">
               <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[9px] border-l-[#888] border-b-[6px] border-b-transparent" />
-              <span className="text-[#888] font-bold text-[10px] ml-0.5 mt-[-2px]">?</span>
+              <span className={`text-[10px] ml-0.5 mt-[-2px] font-bold ${shuffle ? 'text-[#ff9900]' : 'text-[#888]'}`}>?</span>
             </div>
           </button>
         </div>
@@ -324,8 +342,14 @@ export default function App() {
         {/* Volume */}
         <div className="w-24 shrink-0 flex items-center gap-2 group">
            <div className="text-[9px] text-[#444] font-bold">VOL</div>
-           <div className="h-1 bg-[#222] flex-1 relative overflow-hidden rounded-full">
-             <div className="absolute left-0 top-0 h-full bg-[#555] w-full" />
+           <div 
+             className="h-1 bg-[#222] flex-1 relative overflow-hidden rounded-full cursor-pointer"
+             onClick={handleVolumeClick}
+           >
+             <div 
+               className="absolute left-0 top-0 h-full bg-[#888] w-full" 
+               style={{ width: `${volume * 100}%` }}
+             />
            </div>
         </div>
 
