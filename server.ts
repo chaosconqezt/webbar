@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 });
 
 const PORT = 3000;
-const MUSIC_DIR = path.resolve(process.cwd(), 'music');
+const MUSIC_DIR = process.env.MUSIC_DIR || path.resolve(process.cwd(), 'music');
 
 // Define API routes
 

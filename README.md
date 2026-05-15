@@ -43,7 +43,7 @@ A web-based music player inspired by foobar2000, specialized in streaming local 
 
 **Frontend (React):**
 - Layout consists of resizable or fixed grid/flex layouts echoing foobar2000 default columns UI.
-- Direct standard HTML5 `<audio>` tag linked to a visualizer. 
+- Direct standard HTML5 `<audio>` tag linked to a visualizer.
 
 ## Limitations
 - Performance over extremely large library directories (e.g., 1TB+ / >10k files) may take too long to fetch via `/api/tree` since it's recursive synchronous-like loading. Deeply nested tracks might require database indexing for a more robust setup.
