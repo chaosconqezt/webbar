@@ -20,7 +20,8 @@ app.use((req, res, next) => {
 });
 
 const PORT = 3000;
-const MUSIC_DIR = process.env.MUSIC_DIR || path.resolve(process.cwd(), 'music');
+const rawMusicDir = process.env.MUSIC_DIR || 'music';
+const MUSIC_DIR = path.isAbsolute(rawMusicDir) ? rawMusicDir : path.resolve(process.cwd(), rawMusicDir);
 
 // Define API routes
 
@@ -66,17 +67,38 @@ app.get('/api/tree', async (req, res) => {
 
 app.get('/api/cover', async (req, res) => {
   try {
-    const folderPath = (req.query.path as string) || '';
-    const dirPath = path.join(MUSIC_DIR, folderPath);
+    const targetPath = (req.query.path as string) || '';
+    const resolvedPath = path.resolve(MUSIC_DIR, targetPath);
+    const normalizedMusicDir = path.normalize(MUSIC_DIR);
     
-    if (!dirPath.startsWith(MUSIC_DIR)) {
+    if (!resolvedPath.startsWith(normalizedMusicDir + path.sep) && resolvedPath !== normalizedMusicDir) {
       return res.status(403).send('Forbidden');
     }
 
-    if (!fs.existsSync(dirPath)) {
+    if (!fs.existsSync(resolvedPath)) {
       return res.status(404).send('Not found');
     }
 
+    const stat = fs.statSync(resolvedPath);
+    let dirPath = resolvedPath;
+
+    // If it's a specific audio file, try extracting its embedded cover first
+    if (stat.isFile()) {
+      dirPath = path.dirname(resolvedPath);
+      try {
+        const metadata = await parseFile(resolvedPath, { skipPostHeaders: true });
+        const picture = metadata.common.picture && metadata.common.picture[0];
+        if (picture) {
+          res.setHeader('Content-Type', picture.format);
+          res.setHeader('Cache-Control', 'public, max-age=3600');
+          return res.send(picture.data);
+        }
+      } catch (e) {
+        // Fallback to folder cover logic
+      }
+    }
+
+    // Now look for folder-level cover images
     const files = await fsp.readdir(dirPath);
     // console.log(`[api/cover] Folder: ${folderPath}, Files found: ${files.length}`);
     
@@ -111,17 +133,17 @@ app.get('/api/cover', async (req, res) => {
       }
     }
 
-    // 2. If no file found, try extracting from the first audio file
-    const audioFile = files.find(f => {
+    // 2. If no file found, try extracting from the first few audio files
+    const audioFiles = files.filter(f => {
       const ext = path.extname(f).toLowerCase();
       return ['.mp3', '.flac', '.wav', '.ogg', '.m4a'].includes(ext);
-    });
+    }).slice(0, 3); // Check up to 3 audio files
 
-    if (audioFile) {
+    for (const audioFile of audioFiles) {
       const filePath = path.join(dirPath, audioFile);
-      // console.log(`[api/cover] Attempting extraction from: ${filePath}`);
       try {
-        const metadata = await parseFile(filePath);
+        // Only parse what we need for the cover
+        const metadata = await parseFile(filePath, { skipPostHeaders: true });
         const picture = metadata.common.picture && metadata.common.picture[0];
         
         if (picture) {
@@ -131,7 +153,8 @@ app.get('/api/cover', async (req, res) => {
           return res.send(picture.data);
         }
       } catch (e) {
-        console.error(`[api/cover] Metadata extraction error:`, e);
+        // Ignore metadata extraction errors and try the next file
+        // console.error(`[api/cover] Metadata extraction error:`, e);
       }
     }
 
@@ -147,11 +170,13 @@ app.get('/api/folder-content', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
     const relativePath = (req.query.path as string) || '';
-    const fullPath = path.join(MUSIC_DIR, relativePath);
+    const fullPath = path.resolve(MUSIC_DIR, relativePath);
     // console.log(`[GET /api/folder-content] Path: ${relativePath} -> Full: ${fullPath}`);
     
     // Prevent directory traversal
-    if (!fullPath.startsWith(MUSIC_DIR)) {
+    const normalizedMusicDir = path.normalize(MUSIC_DIR);
+    
+    if (!fullPath.startsWith(normalizedMusicDir + path.sep) && fullPath !== normalizedMusicDir) {
       console.warn(`[GET /api/folder-content] Potential traversal attempt: ${fullPath}`);
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -237,10 +262,11 @@ app.get('/api/stream', (req, res) => {
     return res.status(400).send('No path provided');
   }
 
-  const fullPath = path.join(MUSIC_DIR, relativePath);
+  const fullPath = path.resolve(MUSIC_DIR, relativePath);
+  const normalizedMusicDir = path.normalize(MUSIC_DIR);
 
   // Prevent directory traversal
-  if (!fullPath.startsWith(MUSIC_DIR)) {
+  if (!fullPath.startsWith(normalizedMusicDir + path.sep) && fullPath !== normalizedMusicDir) {
     return res.status(403).send('Access denied');
   }
 

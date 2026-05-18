@@ -138,6 +138,8 @@ export default function App() {
       const nextTrack = tracks[currentIndex + 1];
       setPlayingTrack(nextTrack);
       setSelectedTrack(nextTrack);
+    } else {
+      stopPlayback();
     }
   };
 
@@ -148,6 +150,8 @@ export default function App() {
       const prevTrack = tracks[currentIndex - 1];
       setPlayingTrack(prevTrack);
       setSelectedTrack(prevTrack);
+    } else {
+      stopPlayback();
     }
   };
 
@@ -494,13 +498,8 @@ export default function App() {
             {/* Album Art */}
             <div className="w-[200px] h-full relative overflow-hidden border-l border-[#333333] bg-black">
               {(() => {
-                const coverFolderPath = currentMetaTrack 
-                  ? currentMetaTrack.path.split('/').slice(0, -1).join('/') 
-                  : selectedPath;
-                
-                if (!coverFolderPath && !selectedPath) return null;
-                
-                const finalPath = coverFolderPath || selectedPath || "";
+                const finalPath = (playingTrack && playingTrack.path) || selectedPath || "";
+                if (!finalPath) return null;
                 
                 return (
                   <img 
