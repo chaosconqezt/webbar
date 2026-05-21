@@ -6,15 +6,17 @@ import treeRouter from './server/routes/tree.js';
 import coverRouter from './server/routes/cover.js';
 import folderContentRouter from './server/routes/folder-content.js';
 import streamRouter from './server/routes/stream.js';
+import manageRouter from './server/routes/manage.js';
 
 const app = express();
 app.disable('etag');
+app.use(express.json());
 
 // Add CORS headers for internal API and streaming
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Range');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -26,6 +28,7 @@ app.use('/api/tree', treeRouter);
 app.use('/api/cover', coverRouter);
 app.use('/api/folder-content', folderContentRouter);
 app.use('/api/stream', streamRouter);
+app.use('/api/manage', manageRouter);
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
