@@ -11,6 +11,7 @@ export const Visualizer: React.FC<VisualizerProps> = ({ audioRef }) => {
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isInitialized = false;
@@ -66,8 +67,15 @@ export const Visualizer: React.FC<VisualizerProps> = ({ audioRef }) => {
         canvas.height = parent.clientHeight;
       }
     };
+    
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
     resize();
-    window.addEventListener('resize', resize);
 
     const render = () => {
       if (!analyzerRef.current || !dataArrayRef.current) {
@@ -100,7 +108,7 @@ export const Visualizer: React.FC<VisualizerProps> = ({ audioRef }) => {
     render();
 
     return () => {
-      window.removeEventListener('resize', resize);
+      resizeObserver.disconnect();
       if (audioElement) {
         audioElement.removeEventListener('play', handlePlay);
       }
@@ -108,10 +116,10 @@ export const Visualizer: React.FC<VisualizerProps> = ({ audioRef }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [audioRef.current]);
+  }, [audioRef]);
 
   return (
-    <div className="w-full h-full bg-black flex items-center justify-center p-1">
+    <div ref={containerRef} className="w-full h-full bg-black flex items-center justify-center p-1">
       <canvas 
         ref={canvasRef} 
         width={300} 

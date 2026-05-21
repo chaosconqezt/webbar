@@ -1,0 +1,99 @@
+import { Router } from 'express';
+import fs from 'fs';
+import fsp from 'fs/promises';
+import path from 'path';
+import { parseFile } from 'music-metadata';
+import { MUSIC_DIR } from '../config.js';
+
+const router = Router();
+
+router.get('/', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const relativePath = (req.query.path as string) || '';
+    const fullPath = path.resolve(MUSIC_DIR, relativePath);
+    
+    // Prevent directory traversal
+    const normalizedMusicDir = path.normalize(MUSIC_DIR);
+    
+    if (!fullPath.startsWith(normalizedMusicDir + path.sep) && fullPath !== normalizedMusicDir) {
+      console.warn(`[GET /api/folder-content] Potential traversal attempt: ${fullPath}`);
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!fs.existsSync(fullPath)) {
+      console.warn(`[GET /api/folder-content] Path not found: ${fullPath}`);
+      return res.status(404).json({ error: 'Folder not found' });
+    }
+
+    const entries = await fsp.readdir(fullPath, { withFileTypes: true });
+    const tracks = [];
+
+    for (const entry of entries) {
+      if (entry.isFile()) {
+        const ext = path.extname(entry.name).toLowerCase();
+        // Support some common audio extensions
+        if (['.mp3', '.flac', '.wav', '.ogg', '.m4a'].includes(ext)) {
+          const filePath = path.join(fullPath, entry.name);
+          const relativeFilePath = path.relative(MUSIC_DIR, filePath);
+          
+          try {
+            const metadata = await parseFile(filePath, { duration: true, skipCovers: true });
+            
+            // Format duration as mm:ss
+            let durationStr = '0:00';
+            if (metadata.format.duration) {
+              const mins = Math.floor(metadata.format.duration / 60);
+              const secs = Math.floor(metadata.format.duration % 60);
+              durationStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            tracks.push({
+              fileName: entry.name,
+              path: relativeFilePath,
+              trackNo: metadata.common.track.no || '',
+              artist: metadata.common.artist || metadata.common.albumartist || 'Unknown Artist',
+              title: metadata.common.title || entry.name,
+              album: metadata.common.album || 'Unknown Album',
+              duration: durationStr,
+              date: metadata.common.year || metadata.common.date || '',
+              rawDuration: metadata.format.duration || 0,
+              // extra metadata for info panel
+              bitrate: metadata.format.bitrate,
+              sampleRate: metadata.format.sampleRate,
+              codec: metadata.format.codec
+            });
+          } catch (metadataError) {
+            console.warn(`Could not parse metadata for ${filePath}:`, metadataError);
+            tracks.push({
+              fileName: entry.name,
+              path: relativeFilePath,
+              trackNo: '',
+              artist: 'Unknown Artist',
+              title: entry.name,
+              album: 'Unknown Album',
+              duration: '0:00',
+              date: '',
+              rawDuration: 0,
+            });
+          }
+        }
+      }
+    }
+    
+    // Sort tracks by trackNo, then fallback to title
+    tracks.sort((a, b) => {
+      if (a.trackNo && b.trackNo) {
+        return Number(a.trackNo) - Number(b.trackNo);
+      }
+      return a.title.localeCompare(b.title);
+    });
+
+    res.json(tracks);
+  } catch (error) {
+    console.error('Error reading folder content:', error);
+    res.status(500).json({ error: 'Failed to read folder content' });
+  }
+});
+
+export default router;
