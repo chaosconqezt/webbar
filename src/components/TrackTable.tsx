@@ -3,21 +3,25 @@ import { Track } from '../types';
 
 interface TrackTableProps {
   tracks: Track[];
-  selectedTrack: Track | null;
+  selectedTracks: Track[];
   playingTrack: Track | null;
   isPlaying: boolean;
-  onSelectTrack: (track: Track) => void;
-  onTrackAction?: (action: 'delete', track: Track) => void;
+  onSelectTrack: (track: Track, idx: number, e: React.MouseEvent) => void;
+  onPlayTrack: (track: Track) => void;
+  onTrackAction?: (action: 'delete', tracks: Track[]) => void;
 }
 
 export const TrackTable: React.FC<TrackTableProps> = ({
   tracks,
-  selectedTrack,
+  selectedTracks,
   playingTrack,
   isPlaying,
   onSelectTrack,
+  onPlayTrack,
   onTrackAction,
 }) => {
+  const isAllSelected = selectedTracks.length > 0 && selectedTracks.length === tracks.length;
+
   return (
     <section className="flex-1 overflow-hidden flex flex-col bg-[#0a0a0a]">
       {/* Table Header */}
@@ -34,7 +38,7 @@ export const TrackTable: React.FC<TrackTableProps> = ({
       {/* Table Body */}
       <div className="flex-1 overflow-y-auto leading-[20px]">
         {tracks.length > 0 ? tracks.map((track, idx) => {
-          const isSelected = selectedTrack?.path === track.path;
+          const isSelected = selectedTracks.some(t => t.path === track.path);
           const isCurrentPlaying = playingTrack?.path === track.path;
           
           return (
@@ -42,17 +46,31 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               key={idx} 
               draggable
               onDragStart={(e) => {
-                e.dataTransfer.setData('sourcePath', track.path);
-                e.dataTransfer.setData('type', 'file');
+                // If dragging a selected track, pass all selected paths
+                if (isSelected && selectedTracks.length > 1) {
+                  e.dataTransfer.setData('sourcePath', JSON.stringify(selectedTracks.map(t => t.path)));
+                  e.dataTransfer.setData('type', 'files');
+                } else {
+                  e.dataTransfer.setData('sourcePath', track.path);
+                  e.dataTransfer.setData('type', 'file');
+                }
               }}
               className={`group grid grid-cols-[30px_50px_1.5fr_2fr_1.5fr_80px_80px] px-2 border-b border-[#1a1a1a] ${isSelected ? 'bg-[#222222] text-white' : 'hover:bg-[#1a1a1a] cursor-grab active:cursor-grabbing'}`}
-              onMouseDown={() => {
-                onSelectTrack(track);
+              onMouseDown={(e) => {
+                onSelectTrack(track, idx, e);
+              }}
+              onDoubleClick={() => {
+                onPlayTrack(track);
               }}
               onContextMenu={(e) => {
                 if (onTrackAction) {
                   e.preventDefault();
-                  onTrackAction('delete', track);
+                  // If right-clicking on a currently selected track, apply action to all selected
+                  if (isSelected && selectedTracks.length > 1) {
+                    onTrackAction('delete', selectedTracks);
+                  } else {
+                    onTrackAction('delete', [track]);
+                  }
                 }
               }}
             >
@@ -80,7 +98,13 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-[#ff2222] items-center">
                  <button onClick={(e) => {
                    e.stopPropagation();
-                   if (onTrackAction) onTrackAction('delete', track);
+                   if (onTrackAction) {
+                     if (isSelected && selectedTracks.length > 1) {
+                       onTrackAction('delete', selectedTracks);
+                     } else {
+                       onTrackAction('delete', [track]);
+                     }
+                   }
                  }} title="Delete Track">✕</button>
               </span>
             </div>

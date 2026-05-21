@@ -9,6 +9,7 @@ export interface Track {
   path: string;
   trackNo: string;
   artist: string;
+  albumArtist?: string;
   title: string;
   album: string;
   duration: string;

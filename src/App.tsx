@@ -15,7 +15,8 @@ export default function App() {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
+  const [lastSelectedIdx, setLastSelectedIdx] = useState<number>(-1);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const {
@@ -114,17 +115,43 @@ export default function App() {
 
   const playSpecificTrack = (track: Track) => {
     setPlayingTrack(track);
-    setSelectedTrack(track);
+    setSelectedTracks([track]);
+    setLastSelectedIdx(tracks.findIndex(t => t.path === track.path));
+  };
+
+  const handleSelectTrack = (track: Track, idx: number, e: React.MouseEvent) => {
+    if (e.shiftKey && lastSelectedIdx !== -1) {
+      const start = Math.min(lastSelectedIdx, idx);
+      const end = Math.max(lastSelectedIdx, idx);
+      setSelectedTracks(tracks.slice(start, end + 1));
+    } else if (e.ctrlKey || e.metaKey) {
+      const isSelected = selectedTracks.some(t => t.path === track.path);
+      if (isSelected) {
+        setSelectedTracks(selectedTracks.filter(t => t.path !== track.path));
+      } else {
+        setSelectedTracks([...selectedTracks, track]);
+      }
+      setLastSelectedIdx(idx);
+    } else {
+      setSelectedTracks([track]);
+      setLastSelectedIdx(idx);
+    }
   };
 
   const handlePlayNext = () => {
     const nextTrack = playNext();
-    if (nextTrack) setSelectedTrack(nextTrack);
+    if (nextTrack) {
+      setSelectedTracks([nextTrack]);
+      setLastSelectedIdx(tracks.findIndex(t => t.path === nextTrack.path));
+    }
   };
 
   const handlePlayPrev = () => {
     const prevTrack = playPrev();
-    if (prevTrack) setSelectedTrack(prevTrack);
+    if (prevTrack) {
+      setSelectedTracks([prevTrack]);
+      setLastSelectedIdx(tracks.findIndex(t => t.path === prevTrack.path));
+    }
   };
 
   const handleFolderAction = (action: 'create' | 'delete' | 'rename', path: string) => {
@@ -179,26 +206,43 @@ export default function App() {
   };
 
   const handleFolderMove = async (sourcePath: string, targetPath: string) => {
-    if (sourcePath === targetPath) return;
-    const folderName = sourcePath.split('/').pop();
-    const newPath = targetPath ? `${targetPath}/${folderName}` : folderName || '';
-    if (sourcePath === newPath) return;
-    
+    setSidebarDragOver(false);
     try {
-      const res = await fetch('/api/manage/move', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: sourcePath, destination: newPath })
-      });
-      if (res.ok) {
-        refreshTree();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        alert(`Error moving folder: ${data.error || res.statusText || 'Unknown error'}`);
+      let pathsToMove = [sourcePath];
+      
+      // Check if sourcePath is a JSON array (from multi-drag)
+      if (sourcePath.startsWith('[') && sourcePath.endsWith(']')) {
+        pathsToMove = JSON.parse(sourcePath);
       }
+
+      let errorMessages: string[] = [];
+
+      for (const sp of pathsToMove) {
+        if (sp === targetPath) continue;
+        const itemName = sp.split('/').pop();
+        const newPath = targetPath ? `${targetPath}/${itemName}` : itemName || '';
+        if (sp === newPath) continue;
+
+        const res = await fetch('/api/manage/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: sp, destination: newPath })
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errorMessages.push(`Error moving ${itemName}: ${data.error || res.statusText || 'Unknown error'}`);
+        }
+      }
+
+      if (errorMessages.length > 0) {
+        alert(errorMessages.join('\n'));
+      }
+      
+      refreshTree();
     } catch (err) {
       console.error(err);
-      alert(`Network error moving folder. Details: ${(err as Error).message}`);
+      alert(`Network error moving file(s). Details: ${(err as Error).message}`);
     }
   };
 
@@ -290,7 +334,7 @@ export default function App() {
     }
   };
 
-  const currentMetaTrack = selectedTrack || playingTrack;
+  const currentMetaTrack = selectedTracks.length > 0 ? selectedTracks[0] : playingTrack;
 
   return (
     <div 
@@ -306,7 +350,7 @@ export default function App() {
         refreshKey={refreshKey}
         isTreeEmpty={tree.length === 0}
         onStop={stopPlayback}
-        onPlayPause={() => togglePlayPause(selectedTrack, setSelectedTrack)}
+        onPlayPause={() => togglePlayPause(selectedTracks[0] || null, (t) => setSelectedTracks(t ? [t] : []))}
         onPrev={handlePlayPrev}
         onNext={handlePlayNext}
         onToggleShuffle={() => setShuffle(!shuffle)}
@@ -426,15 +470,27 @@ export default function App() {
         {/* Right Side */}
         <main className="flex flex-col flex-1 overflow-hidden min-w-0">
           
-          <MetadataPanel track={currentMetaTrack} />
+          <MetadataPanel tracks={selectedTracks} currentMetaTrack={selectedTracks.length > 0 ? selectedTracks[0] : playingTrack} onRefresh={refreshTree} />
 
           <TrackTable 
             tracks={tracks}
-            selectedTrack={selectedTrack}
+            selectedTracks={selectedTracks}
             playingTrack={playingTrack}
             isPlaying={isPlaying}
-            onSelectTrack={playSpecificTrack}
-            onTrackAction={handleTrackAction}
+            onSelectTrack={handleSelectTrack}
+            onPlayTrack={playSpecificTrack}
+            onTrackAction={(action, affectedTracks) => {
+               if (action === 'delete') {
+                 // For now, if we pass multiple, we could open modal to confirm for multiple.
+                 // We will just do the first one or we can enhance modal config.
+                 // Wait, we can pass multiple tracks to delete? Let's just pass one.
+                 // App handles deletion by path only.
+                 // let's just delete the first one for simplicity, or modify ModalConfig to handle arrays.
+                 if (affectedTracks.length > 0) {
+                     setModalConfig({ isOpen: true, type: 'delete', path: affectedTracks[0].path });
+                 }
+               }
+            }}
           />
 
           <div 

@@ -7,6 +7,7 @@ import coverRouter from './server/routes/cover.js';
 import folderContentRouter from './server/routes/folder-content.js';
 import streamRouter from './server/routes/stream.js';
 import manageRouter from './server/routes/manage.js';
+import tagsRouter from './server/routes/tags.js';
 
 const app = express();
 app.disable('etag');
@@ -29,6 +30,7 @@ app.use('/api/cover', coverRouter);
 app.use('/api/folder-content', folderContentRouter);
 app.use('/api/stream', streamRouter);
 app.use('/api/manage', manageRouter);
+app.use('/api/tags', tagsRouter);
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

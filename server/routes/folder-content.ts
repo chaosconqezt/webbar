@@ -26,60 +26,72 @@ router.get('/', async (req, res) => {
       return res.status(404).json({ error: 'Folder not found' });
     }
 
-    const entries = await fsp.readdir(fullPath, { withFileTypes: true });
-    const tracks = [];
+    const tracks: any[] = [];
+    
+    // limit depth logic: 0 for root, 10 for subfolders
+    const maxDepth = relativePath === '' ? 0 : 10;
+    
+    async function scanDir(currentPath: string, depth: number) {
+      if (depth > maxDepth) return;
+      try {
+        const entries = await fsp.readdir(currentPath, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            await scanDir(path.join(currentPath, entry.name), depth + 1);
+          } else if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (['.mp3', '.flac', '.wav', '.ogg', '.m4a'].includes(ext)) {
+              const filePath = path.join(currentPath, entry.name);
+              const relativeFilePath = path.relative(MUSIC_DIR, filePath);
+              
+              try {
+                const metadata = await parseFile(filePath, { duration: true, skipCovers: true });
+                
+                let durationStr = '0:00';
+                if (metadata.format.duration) {
+                  const mins = Math.floor(metadata.format.duration / 60);
+                  const secs = Math.floor(metadata.format.duration % 60);
+                  durationStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+                }
 
-    for (const entry of entries) {
-      if (entry.isFile()) {
-        const ext = path.extname(entry.name).toLowerCase();
-        // Support some common audio extensions
-        if (['.mp3', '.flac', '.wav', '.ogg', '.m4a'].includes(ext)) {
-          const filePath = path.join(fullPath, entry.name);
-          const relativeFilePath = path.relative(MUSIC_DIR, filePath);
-          
-          try {
-            const metadata = await parseFile(filePath, { duration: true, skipCovers: true });
-            
-            // Format duration as mm:ss
-            let durationStr = '0:00';
-            if (metadata.format.duration) {
-              const mins = Math.floor(metadata.format.duration / 60);
-              const secs = Math.floor(metadata.format.duration % 60);
-              durationStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+                tracks.push({
+                  fileName: entry.name,
+                  path: relativeFilePath,
+                  trackNo: metadata.common.track.no || '',
+                  artist: metadata.common.artist || metadata.common.albumartist || 'Unknown Artist',
+                  title: metadata.common.title || entry.name,
+                  album: metadata.common.album || 'Unknown Album',
+                  albumArtist: metadata.common.albumartist || '',
+                  duration: durationStr,
+                  date: metadata.common.year || metadata.common.date || '',
+                  rawDuration: metadata.format.duration || 0,
+                  bitrate: metadata.format.bitrate,
+                  sampleRate: metadata.format.sampleRate,
+                  codec: metadata.format.codec
+                });
+              } catch (metadataError) {
+                tracks.push({
+                  fileName: entry.name,
+                  path: relativeFilePath,
+                  trackNo: '',
+                  artist: 'Unknown Artist',
+                  title: entry.name,
+                  album: 'Unknown Album',
+                  albumArtist: '',
+                  duration: '0:00',
+                  date: '',
+                  rawDuration: 0,
+                });
+              }
             }
-
-            tracks.push({
-              fileName: entry.name,
-              path: relativeFilePath,
-              trackNo: metadata.common.track.no || '',
-              artist: metadata.common.artist || metadata.common.albumartist || 'Unknown Artist',
-              title: metadata.common.title || entry.name,
-              album: metadata.common.album || 'Unknown Album',
-              duration: durationStr,
-              date: metadata.common.year || metadata.common.date || '',
-              rawDuration: metadata.format.duration || 0,
-              // extra metadata for info panel
-              bitrate: metadata.format.bitrate,
-              sampleRate: metadata.format.sampleRate,
-              codec: metadata.format.codec
-            });
-          } catch (metadataError) {
-            console.warn(`Could not parse metadata for ${filePath}:`, metadataError);
-            tracks.push({
-              fileName: entry.name,
-              path: relativeFilePath,
-              trackNo: '',
-              artist: 'Unknown Artist',
-              title: entry.name,
-              album: 'Unknown Album',
-              duration: '0:00',
-              date: '',
-              rawDuration: 0,
-            });
           }
         }
+      } catch (e) {
+        console.error(`Error scanning ${currentPath}`, e);
       }
     }
+
+    await scanDir(fullPath, 0);
     
     // Sort tracks by trackNo, then fallback to title
     tracks.sort((a, b) => {
