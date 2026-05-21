@@ -328,9 +328,10 @@ export default function App() {
           }}
         >
           {sidebarDragOver && (
-            <div className="absolute inset-0 z-50 bg-[#ff9900]/10 flex items-center justify-center pointer-events-none backdrop-blur-[1px]">
+            <div className="absolute inset-0 z-50 bg-[#ff9900]/20 flex items-center justify-center pointer-events-none backdrop-blur-[1px]">
               <div className="bg-[#ff9900] text-black px-4 py-2 text-sm font-bold shadow-lg uppercase tracking-wider text-center">
-                Drop folders/files<br/>here
+                Drop folders/files<br/>
+                <span className="text-[10px] opacity-80">{selectedPath ? `to /${selectedPath}` : 'to root folder'}</span>
               </div>
             </div>
           )}
