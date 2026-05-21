@@ -13,3 +13,28 @@
     font-size: 12px;
   }
 }
+
+/* Custom sleek scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #222222;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff9900;
+}
+::-webkit-scrollbar-corner {
+  background: #0a0a0a;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #222222 #0a0a0a;
+}

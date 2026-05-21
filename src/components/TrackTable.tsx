@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Track } from '../types';
+
+export type SortConfig = { key: keyof Track; direction: 'asc' | 'desc' } | null;
 
 interface TrackTableProps {
   tracks: Track[];
   selectedTracks: Track[];
   playingTrack: Track | null;
   isPlaying: boolean;
+  sortConfig: SortConfig;
+  onRequestSort: (key: keyof Track) => void;
   onSelectTrack: (track: Track, idx: number, e: React.MouseEvent) => void;
   onPlayTrack: (track: Track) => void;
   onTrackAction?: (action: 'delete', tracks: Track[]) => void;
@@ -16,27 +20,87 @@ export const TrackTable: React.FC<TrackTableProps> = ({
   selectedTracks,
   playingTrack,
   isPlaying,
+  sortConfig,
+  onRequestSort,
   onSelectTrack,
   onPlayTrack,
   onTrackAction,
 }) => {
   const isAllSelected = selectedTracks.length > 0 && selectedTracks.length === tracks.length;
 
+  const renderSortArrow = (key: keyof Track) => {
+    if (sortConfig?.key !== key) return null;
+    return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+  };
+
+  // Resizable columns state - using fixed pixels, with title taking minmax(auto, 1fr) so it stretches
+  const [widths, setWidths] = useState([30, 50, 200, 300, 200, 80, 80]);
+
+  const handleResize = (idx: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.pageX;
+    const startW = widths[idx];
+
+    const onMove = (me: MouseEvent) => {
+      const delta = me.pageX - startX;
+      setWidths(prev => {
+        const next = [...prev];
+        next[idx] = Math.max(30, startW + delta);
+        return next;
+      });
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  // Title column (index 3) takes the rest of the available space
+  const gridStyle = { 
+    gridTemplateColumns: `${widths[0]}px ${widths[1]}px ${widths[2]}px minmax(${widths[3]}px, 1fr) ${widths[4]}px ${widths[5]}px ${widths[6]}px` 
+  };
+
+  const Resizer = ({ idx }: { idx: number }) => (
+    <div 
+      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#ff9900] opacity-50 z-10"
+      onMouseDown={(e) => handleResize(idx, e)}
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+
   return (
     <section className="flex-1 overflow-hidden flex flex-col bg-[#0a0a0a]">
       {/* Table Header */}
-      <div className="grid grid-cols-[30px_50px_1.5fr_2fr_1.5fr_80px_80px] border-b border-[#333333] bg-[#111111] text-[#888888] font-bold px-2 py-1 shrink-0">
-          <span className="text-center"></span>
-          <span className="text-right pr-2">#</span>
-          <span>Artist</span>
-          <span>Title</span>
-          <span>Album</span>
-          <span className="text-right">Length</span>
-          <span className="text-center">Date</span>
+      <div 
+        style={gridStyle}
+        className="grid border-b border-[#333333] bg-[#111111] text-[#888888] font-bold px-2 py-1 shrink-0 select-none overflow-hidden"
+      >
+          <span className="text-center relative"><Resizer idx={0} /></span>
+          <span className="text-right pr-2 cursor-pointer hover:text-white relative" onClick={() => onRequestSort('trackNo')}>
+            #{renderSortArrow('trackNo')}<Resizer idx={1} />
+          </span>
+          <span className="cursor-pointer hover:text-white relative" onClick={() => onRequestSort('artist')}>
+            Artist{renderSortArrow('artist')}<Resizer idx={2} />
+          </span>
+          <span className="cursor-pointer hover:text-white relative" onClick={() => onRequestSort('title')}>
+            Title{renderSortArrow('title')}<Resizer idx={3} />
+          </span>
+          <span className="cursor-pointer hover:text-white relative" onClick={() => onRequestSort('album')}>
+            Album{renderSortArrow('album')}<Resizer idx={4} />
+          </span>
+          <span className="text-right cursor-pointer hover:text-white relative pr-2" onClick={() => onRequestSort('rawDuration')}>
+            Length{renderSortArrow('rawDuration')}<Resizer idx={5} />
+          </span>
+          <span className="text-center cursor-pointer hover:text-white relative" onClick={() => onRequestSort('date')}>
+            Date{renderSortArrow('date')}
+          </span>
       </div>
       
       {/* Table Body */}
-      <div className="flex-1 overflow-y-auto leading-[20px]">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden leading-[20px]">
         {tracks.length > 0 ? tracks.map((track, idx) => {
           const isSelected = selectedTracks.some(t => t.path === track.path);
           const isCurrentPlaying = playingTrack?.path === track.path;
@@ -55,7 +119,8 @@ export const TrackTable: React.FC<TrackTableProps> = ({
                   e.dataTransfer.setData('type', 'file');
                 }
               }}
-              className={`group grid grid-cols-[30px_50px_1.5fr_2fr_1.5fr_80px_80px] px-2 border-b border-[#1a1a1a] ${isSelected ? 'bg-[#222222] text-white' : 'hover:bg-[#1a1a1a] cursor-grab active:cursor-grabbing'}`}
+              style={gridStyle}
+              className={`group grid px-2 border-b border-[#1a1a1a] ${isSelected ? 'bg-[#222222]' : 'hover:bg-[#1a1a1a] cursor-grab active:cursor-grabbing'} ${isCurrentPlaying ? 'text-[#ff9900] font-medium' : (isSelected ? 'text-white' : 'text-[#aaaaaa]')}`}
               onMouseDown={(e) => {
                 onSelectTrack(track, idx, e);
               }}
@@ -77,7 +142,7 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               <span className="flex justify-center items-center text-[#ff9900]">
                 {isCurrentPlaying ? (isPlaying ? '▶' : '⏸') : ''}
               </span>
-              <span className={`text-right pr-2 ${isSelected ? '' : 'opacity-60'}`}>
+              <span className={`text-right pr-2 ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
                 {track.trackNo}
               </span>
               <span className="truncate pr-2">
@@ -86,13 +151,13 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               <span className="truncate pr-2">
                   {track.title}
               </span>
-              <span className={`truncate pr-2 ${isSelected ? '' : 'opacity-80'}`}>
+              <span className={`truncate pr-2 ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-80')}`}>
                 {track.album}
               </span>
-              <span className={`text-right pr-2 ${isSelected ? '' : 'opacity-80'}`}>
+              <span className={`text-right pr-2 ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-80')}`}>
                 {track.duration}
               </span>
-              <span className={`text-center ${isSelected ? '' : 'opacity-60'} relative group-hover:hidden`}>
+              <span className={`text-center relative group-hover:hidden ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
                 {track.date}
               </span>
               <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-[#ff2222] items-center">
@@ -116,3 +181,4 @@ export const TrackTable: React.FC<TrackTableProps> = ({
     </section>
   );
 };
+

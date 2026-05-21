@@ -18,7 +18,7 @@ export const MetadataPanel: React.FC<MetadataPanelProps> = ({ tracks, currentMet
   if (!displayTrack) {
     return (
       <section className="h-[120px] border-b border-[#333333] flex overflow-hidden shrink-0 bg-[#0a0a0a]">
-        <div className="flex-1 p-4 grid grid-cols-2 sm:grid-cols-4 gap-y-2 gap-x-8 align-start content-start overflow-y-auto">
+        <div className="flex-1 p-4 grid grid-cols-2 sm:grid-cols-4 gap-y-2 gap-x-8 align-start content-start overflow-hidden">
             <div className="col-span-2 text-[#666] italic text-[14px]">Select a track to view metadata...</div>
         </div>
       </section>
@@ -104,7 +104,7 @@ export const MetadataPanel: React.FC<MetadataPanelProps> = ({ tracks, currentMet
 
   return (
     <section className="h-[120px] border-b border-[#333333] flex overflow-hidden shrink-0 bg-[#0a0a0a]">
-      <div className="flex-1 p-4 grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-8 align-start content-start overflow-y-auto">
+      <div className="flex-1 p-4 grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-8 align-start content-start overflow-hidden">
         {renderField('Artist', 'artist', getAggregatedString('artist', displayTrack.artist))}
         {renderField('Album Artist', 'albumArtist', getAggregatedString('albumArtist', displayTrack.albumArtist || ''))}
         {renderField('Album', 'album', getAggregatedString('album', displayTrack.album))}

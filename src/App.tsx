@@ -19,6 +19,41 @@ export default function App() {
   const [lastSelectedIdx, setLastSelectedIdx] = useState<number>(-1);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const [sortConfig, setSortConfig] = useState<{key: keyof Track, direction: 'asc' | 'desc'} | null>(null);
+
+  const requestSort = (key: keyof Track) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    } else if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+      setSortConfig(null);
+      return;
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortedTracks = (tracks: Track[]) => {
+    if (!sortConfig) return tracks;
+    return [...tracks].sort((a, b) => {
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+
+      if (sortConfig.key === 'trackNo') {
+        aVal = parseInt(a.trackNo as string) || 0;
+        bVal = parseInt(b.trackNo as string) || 0;
+      } else if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal as string).toLowerCase();
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const sortedTracks = getSortedTracks(tracks);
+
   const {
     audioRef,
     playingTrack,
@@ -37,7 +72,7 @@ export default function App() {
     togglePlayPause,
     handleVolumeClick,
     handleProgressClick
-  } = useAudioPlayer(tracks);
+  } = useAudioPlayer(sortedTracks);
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [bottomHeight, setBottomHeight] = useState(200);
@@ -116,14 +151,14 @@ export default function App() {
   const playSpecificTrack = (track: Track) => {
     setPlayingTrack(track);
     setSelectedTracks([track]);
-    setLastSelectedIdx(tracks.findIndex(t => t.path === track.path));
+    setLastSelectedIdx(sortedTracks.findIndex(t => t.path === track.path));
   };
 
   const handleSelectTrack = (track: Track, idx: number, e: React.MouseEvent) => {
     if (e.shiftKey && lastSelectedIdx !== -1) {
       const start = Math.min(lastSelectedIdx, idx);
       const end = Math.max(lastSelectedIdx, idx);
-      setSelectedTracks(tracks.slice(start, end + 1));
+      setSelectedTracks(sortedTracks.slice(start, end + 1));
     } else if (e.ctrlKey || e.metaKey) {
       const isSelected = selectedTracks.some(t => t.path === track.path);
       if (isSelected) {
@@ -142,7 +177,7 @@ export default function App() {
     const nextTrack = playNext();
     if (nextTrack) {
       setSelectedTracks([nextTrack]);
-      setLastSelectedIdx(tracks.findIndex(t => t.path === nextTrack.path));
+      setLastSelectedIdx(sortedTracks.findIndex(t => t.path === nextTrack.path));
     }
   };
 
@@ -150,7 +185,7 @@ export default function App() {
     const prevTrack = playPrev();
     if (prevTrack) {
       setSelectedTracks([prevTrack]);
-      setLastSelectedIdx(tracks.findIndex(t => t.path === prevTrack.path));
+      setLastSelectedIdx(sortedTracks.findIndex(t => t.path === prevTrack.path));
     }
   };
 
@@ -473,10 +508,12 @@ export default function App() {
           <MetadataPanel tracks={selectedTracks} currentMetaTrack={selectedTracks.length > 0 ? selectedTracks[0] : playingTrack} onRefresh={refreshTree} />
 
           <TrackTable 
-            tracks={tracks}
+            tracks={sortedTracks}
             selectedTracks={selectedTracks}
             playingTrack={playingTrack}
             isPlaying={isPlaying}
+            sortConfig={sortConfig}
+            onRequestSort={requestSort}
             onSelectTrack={handleSelectTrack}
             onPlayTrack={playSpecificTrack}
             onTrackAction={(action, affectedTracks) => {
