@@ -10,6 +10,7 @@ interface TrackTableProps {
   isPlaying: boolean;
   sortConfig: SortConfig;
   onRequestSort: (key: keyof Track) => void;
+  isAdmin?: boolean;
   onSelectTrack: (track: Track, idx: number, e: React.MouseEvent) => void;
   onPlayTrack: (track: Track) => void;
   onTrackAction?: (action: 'delete', tracks: Track[]) => void;
@@ -22,6 +23,7 @@ export const TrackTable: React.FC<TrackTableProps> = ({
   isPlaying,
   sortConfig,
   onRequestSort,
+  isAdmin,
   onSelectTrack,
   onPlayTrack,
   onTrackAction,
@@ -108,8 +110,9 @@ export const TrackTable: React.FC<TrackTableProps> = ({
           return (
               <div 
               key={idx} 
-              draggable
+              draggable={isAdmin}
               onDragStart={(e) => {
+                if (!isAdmin) return;
                 // If dragging a selected track, pass all selected paths
                 if (isSelected && selectedTracks.length > 1) {
                   e.dataTransfer.setData('sourcePath', JSON.stringify(selectedTracks.map(t => t.path)));
@@ -128,7 +131,7 @@ export const TrackTable: React.FC<TrackTableProps> = ({
                 onPlayTrack(track);
               }}
               onContextMenu={(e) => {
-                if (onTrackAction) {
+                if (isAdmin && onTrackAction) {
                   e.preventDefault();
                   // If right-clicking on a currently selected track, apply action to all selected
                   if (isSelected && selectedTracks.length > 1) {
@@ -160,18 +163,20 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               <span className={`text-center relative group-hover:hidden ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
                 {track.date}
               </span>
-              <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-[#ff2222] items-center">
-                 <button onClick={(e) => {
-                   e.stopPropagation();
-                   if (onTrackAction) {
-                     if (isSelected && selectedTracks.length > 1) {
-                       onTrackAction('delete', selectedTracks);
-                     } else {
-                       onTrackAction('delete', [track]);
+              {isAdmin && (
+                <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-[#ff2222] items-center">
+                   <button onClick={(e) => {
+                     e.stopPropagation();
+                     if (onTrackAction) {
+                       if (isSelected && selectedTracks.length > 1) {
+                         onTrackAction('delete', selectedTracks);
+                       } else {
+                         onTrackAction('delete', [track]);
+                       }
                      }
-                   }
-                 }} title="Delete Track">✕</button>
-              </span>
+                   }} title="Delete Track">✕</button>
+                </span>
+              )}
             </div>
           );
         }) : (

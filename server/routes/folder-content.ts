@@ -28,8 +28,12 @@ router.get('/', async (req, res) => {
 
     const tracks: any[] = [];
     
-    // limit depth logic: Infinite for both root and subfolders
-    const maxDepth = Infinity;
+    // limit depth logic: Infinite for both root and subfolders, unless deep=false for root
+    const isRoot = relativePath === '' || relativePath === '/' || relativePath === '\\';
+    let maxDepth = Infinity;
+    if (isRoot && req.query.deep === 'false') {
+        maxDepth = 0;
+    }
     
     async function scanDir(currentPath: string, depth: number) {
       if (depth > maxDepth) return;

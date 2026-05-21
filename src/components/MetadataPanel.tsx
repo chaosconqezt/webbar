@@ -6,9 +6,10 @@ interface MetadataPanelProps {
   tracks: Track[];
   currentMetaTrack: Track | null;
   onRefresh: () => void;
+  isAdmin?: boolean;
 }
 
-export const MetadataPanel: React.FC<MetadataPanelProps> = ({ tracks, currentMetaTrack, onRefresh }) => {
+export const MetadataPanel: React.FC<MetadataPanelProps> = ({ tracks, currentMetaTrack, onRefresh, isAdmin }) => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
@@ -87,7 +88,7 @@ export const MetadataPanel: React.FC<MetadataPanelProps> = ({ tracks, currentMet
         ) : (
           <div className="flex items-center gap-2 mt-1 h-[20px]">
              <span className={`text-[14px] truncate ${value === '[Mixed]' ? 'text-[#888] italic' : 'text-white'}`}>{value}</span>
-             {['artist', 'albumArtist', 'album', 'title', 'date'].includes(field) && (
+             {isAdmin && ['artist', 'albumArtist', 'album', 'title', 'date'].includes(field) && (
                <button 
                  onClick={() => handleEditStart(field, value)}
                  className="opacity-0 group-hover:opacity-100 text-[#ff9900] transition-opacity"

@@ -4,8 +4,10 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 import { MUSIC_DIR } from '../config.js';
+import { requireAdmin } from '../auth.js';
 
 const router = Router();
+router.use(requireAdmin);
 
 function getValidPath(res: any, target: string) {
   const fullPath = path.resolve(MUSIC_DIR, target || '');

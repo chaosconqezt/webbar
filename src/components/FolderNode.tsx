@@ -10,6 +10,7 @@ interface FolderNodeProps {
   onAction?: (action: 'create' | 'delete' | 'rename', path: string) => void;
   onMove?: (sourcePath: string, targetPath: string) => void;
   onUploadFiles?: (e: React.DragEvent, path: string) => void;
+  isAdmin?: boolean;
 }
 
 export const FolderNode: React.FC<FolderNodeProps> = ({
@@ -19,7 +20,8 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
   selectedPath,
   onAction,
   onMove,
-  onUploadFiles
+  onUploadFiles,
+  isAdmin
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -41,11 +43,13 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
   const isSelected = selectedPath === node.path;
   
   const handleDragStart = (e: React.DragEvent) => {
+    if (!isAdmin) return;
     e.dataTransfer.setData('sourcePath', node.path);
     e.stopPropagation();
   };
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (!isAdmin) return;
     e.preventDefault();
     e.stopPropagation();
     const types = Array.from(e.dataTransfer.types).map(t => String(t).toLowerCase());
@@ -55,12 +59,14 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
+    if (!isAdmin) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
+    if (!isAdmin) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
@@ -83,7 +89,7 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
   return (
     <div>
       <div 
-        draggable={level > 0}
+        draggable={isAdmin && level > 0}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -98,7 +104,7 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
         <Folder size={12} className="mr-1 flex-shrink-0 text-[#aaaaaa]" />
         <span className="truncate flex-1">{node.name}</span>
         
-        {isSelected && onAction && (
+        {isAdmin && isSelected && onAction && (
           <div className="flex gap-1 pr-1">
             <button onClick={(e) => { e.stopPropagation(); onAction('create', node.path); }} className="hover:text-[#ff9900]" title="New Folder"><Plus size={12} /></button>
             {level > 0 && (
@@ -122,6 +128,7 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
               onAction={onAction}
               onMove={onMove}
               onUploadFiles={onUploadFiles}
+              isAdmin={isAdmin}
             />
           ))}
         </div>

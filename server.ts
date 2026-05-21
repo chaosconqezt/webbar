@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { PORT, MUSIC_DIR } from './server/config.js';
+import { PORT, MUSIC_DIR, READ_ONLY_MODE } from './server/config.js';
 import treeRouter from './server/routes/tree.js';
 import coverRouter from './server/routes/cover.js';
 import folderContentRouter from './server/routes/folder-content.js';
@@ -25,6 +25,10 @@ app.use((req, res, next) => {
 });
 
 // Define API routes
+app.get('/api/config', (req, res) => {
+  res.json({ readOnly: READ_ONLY_MODE });
+});
+
 app.use('/api/tree', treeRouter);
 app.use('/api/cover', coverRouter);
 app.use('/api/folder-content', folderContentRouter);

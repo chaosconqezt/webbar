@@ -12,6 +12,18 @@ import { Modal } from './components/Modal';
 import { FolderPlus, FilePlus } from 'lucide-react';
 
 export default function App() {
+  const [isAdmin, setIsAdmin] = useState(true);
+  const [deepScanRoot, setDeepScanRoot] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        setIsAdmin(!data.readOnly);
+      })
+      .catch(err => console.error("Could not fetch config:", err));
+  }, []);
+
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -139,14 +151,14 @@ export default function App() {
   // Load tracks when folder selected
   useEffect(() => {
     if (selectedPath !== null) {
-      fetch(`/api/folder-content?path=${encodeURIComponent(selectedPath)}`)
+      fetch(`/api/folder-content?path=${encodeURIComponent(selectedPath)}&deep=${deepScanRoot}`)
         .then(res => res.json())
         .then(data => {
           setTracks(data);
         })
         .catch(err => console.error("Could not fetch folder content:", err));
     }
-  }, [selectedPath, refreshKey]);
+  }, [selectedPath, refreshKey, deepScanRoot]);
 
   const playSpecificTrack = (track: Track) => {
     setPlayingTrack(track);
@@ -402,6 +414,7 @@ export default function App() {
           style={{ width: sidebarWidth }} 
           className={`relative flex flex-col bg-[#0a0a0a] shrink-0 transition-colors ${sidebarDragOver ? 'ring-2 ring-inset ring-[#ff9900] bg-[#111]' : ''}`}
           onDragOver={(e) => { 
+            if (!isAdmin) return;
             const types = Array.from(e.dataTransfer.types).map(t => String(t).toLowerCase());
             if (types.includes('files') || types.includes('sourcepath')) {
               e.preventDefault();
@@ -409,11 +422,13 @@ export default function App() {
             }
           }}
           onDragLeave={(e) => {
+            if (!isAdmin) return;
             if (!e.currentTarget.contains(e.relatedTarget as Node)) {
               setSidebarDragOver(false);
             }
           }}
           onDrop={(e) => {
+            if (!isAdmin) return;
             e.preventDefault();
             setSidebarDragOver(false);
             const types = Array.from(e.dataTransfer.types).map(t => String(t).toLowerCase());
@@ -437,28 +452,41 @@ export default function App() {
           )}
           <div className="p-2 border-b border-[#333333] text-[#888888] uppercase text-[10px] tracking-wider shrink-0 flex justify-between items-center">
             <span>Album List</span>
-            <div className="flex gap-2">
-              <label className="cursor-pointer text-[#888888] hover:text-[#ff9900] transition-colors" title="Upload folder">
-                <FolderPlus size={14} />
-                {/* @ts-ignore */}
-                <input type="file" webkitdirectory="true" directory="true" className="hidden" onChange={(e) => {
-                  if (e.target.files) {
-                    const ev = { dataTransfer: { files: e.target.files }, preventDefault: () => {} } as React.DragEvent;
-                    handleSidebarDrop(ev);
-                    e.target.value = '';
-                  }
-                }} />
+            <div className="flex gap-2 items-center">
+              <label className="flex items-center gap-1 cursor-pointer text-[#888888] hover:text-white transition-colors" title="Toggle recursive scan for root 'music' folder">
+                <input 
+                  type="checkbox" 
+                  className="accent-[#ff9900]" 
+                  checked={deepScanRoot}
+                  onChange={(e) => setDeepScanRoot(e.target.checked)}
+                />
+                Deep Root
               </label>
-              <label className="cursor-pointer text-[#888888] hover:text-[#ff9900] transition-colors" title="Upload files (or drop here)">
-                <FilePlus size={14} />
-                <input type="file" multiple className="hidden" onChange={(e) => {
-                  if (e.target.files) {
-                    const ev = { dataTransfer: { files: e.target.files }, preventDefault: () => {} } as React.DragEvent;
-                    handleSidebarDrop(ev);
-                    e.target.value = '';
-                  }
-                }} />
-              </label>
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <label className="cursor-pointer text-[#888888] hover:text-[#ff9900] transition-colors" title="Upload folder">
+                    <FolderPlus size={14} />
+                    {/* @ts-ignore */}
+                    <input type="file" webkitdirectory="true" directory="true" className="hidden" onChange={(e) => {
+                      if (e.target.files) {
+                        const ev = { dataTransfer: { files: e.target.files }, preventDefault: () => {} } as React.DragEvent;
+                        handleSidebarDrop(ev);
+                        e.target.value = '';
+                      }
+                    }} />
+                  </label>
+                  <label className="cursor-pointer text-[#888888] hover:text-[#ff9900] transition-colors" title="Upload files (or drop here)">
+                    <FilePlus size={14} />
+                    <input type="file" multiple className="hidden" onChange={(e) => {
+                      if (e.target.files) {
+                        const ev = { dataTransfer: { files: e.target.files }, preventDefault: () => {} } as React.DragEvent;
+                        handleSidebarDrop(ev);
+                        e.target.value = '';
+                      }
+                    }} />
+                  </label>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto leading-tight p-2 pt-[2px]">
@@ -489,6 +517,7 @@ export default function App() {
                 onAction={handleFolderAction}
                 onMove={handleFolderMove}
                 onUploadFiles={handleSidebarDrop}
+                isAdmin={isAdmin}
               />
             ))}
           </div>
@@ -505,7 +534,7 @@ export default function App() {
         {/* Right Side */}
         <main className="flex flex-col flex-1 overflow-hidden min-w-0">
           
-          <MetadataPanel tracks={selectedTracks} currentMetaTrack={selectedTracks.length > 0 ? selectedTracks[0] : playingTrack} onRefresh={refreshTree} />
+          <MetadataPanel tracks={selectedTracks} currentMetaTrack={selectedTracks.length > 0 ? selectedTracks[0] : playingTrack} onRefresh={refreshTree} isAdmin={isAdmin} />
 
           <TrackTable 
             tracks={sortedTracks}
@@ -514,6 +543,7 @@ export default function App() {
             isPlaying={isPlaying}
             sortConfig={sortConfig}
             onRequestSort={requestSort}
+            isAdmin={isAdmin}
             onSelectTrack={handleSelectTrack}
             onPlayTrack={playSpecificTrack}
             onTrackAction={(action, affectedTracks) => {
