@@ -7,6 +7,7 @@ interface TrackTableProps {
   playingTrack: Track | null;
   isPlaying: boolean;
   onSelectTrack: (track: Track) => void;
+  onTrackAction?: (action: 'delete', track: Track) => void;
 }
 
 export const TrackTable: React.FC<TrackTableProps> = ({
@@ -15,6 +16,7 @@ export const TrackTable: React.FC<TrackTableProps> = ({
   playingTrack,
   isPlaying,
   onSelectTrack,
+  onTrackAction,
 }) => {
   return (
     <section className="flex-1 overflow-hidden flex flex-col bg-[#0a0a0a]">
@@ -36,11 +38,22 @@ export const TrackTable: React.FC<TrackTableProps> = ({
           const isCurrentPlaying = playingTrack?.path === track.path;
           
           return (
-            <div 
+              <div 
               key={idx} 
-              className={`grid grid-cols-[30px_50px_1.5fr_2fr_1.5fr_80px_80px] px-2 border-b border-[#1a1a1a] ${isSelected ? 'bg-[#222222] text-white' : 'hover:bg-[#1a1a1a]'}`}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('sourcePath', track.path);
+                e.dataTransfer.setData('type', 'file');
+              }}
+              className={`group grid grid-cols-[30px_50px_1.5fr_2fr_1.5fr_80px_80px] px-2 border-b border-[#1a1a1a] ${isSelected ? 'bg-[#222222] text-white' : 'hover:bg-[#1a1a1a] cursor-grab active:cursor-grabbing'}`}
               onMouseDown={() => {
                 onSelectTrack(track);
+              }}
+              onContextMenu={(e) => {
+                if (onTrackAction) {
+                  e.preventDefault();
+                  onTrackAction('delete', track);
+                }
               }}
             >
               <span className="flex justify-center items-center text-[#ff9900]">
@@ -61,8 +74,14 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               <span className={`text-right pr-2 ${isSelected ? '' : 'opacity-80'}`}>
                 {track.duration}
               </span>
-              <span className={`text-center ${isSelected ? '' : 'opacity-60'}`}>
+              <span className={`text-center ${isSelected ? '' : 'opacity-60'} relative group-hover:hidden`}>
                 {track.date}
+              </span>
+              <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-[#ff2222] items-center">
+                 <button onClick={(e) => {
+                   e.stopPropagation();
+                   if (onTrackAction) onTrackAction('delete', track);
+                 }} title="Delete Track">✕</button>
               </span>
             </div>
           );

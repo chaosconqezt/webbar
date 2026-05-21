@@ -72,11 +72,17 @@ export default function App() {
       bottomResizing.current = false;
     };
 
+    const handleDragEnd = () => {
+      setSidebarDragOver(false);
+    };
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('dragend', handleDragEnd);
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('dragend', handleDragEnd);
     };
   }, []);
 
@@ -175,7 +181,8 @@ export default function App() {
   const handleFolderMove = async (sourcePath: string, targetPath: string) => {
     if (sourcePath === targetPath) return;
     const folderName = sourcePath.split('/').pop();
-    const newPath = targetPath ? `${targetPath}/${folderName}` : folderName;
+    const newPath = targetPath ? `${targetPath}/${folderName}` : folderName || '';
+    if (sourcePath === newPath) return;
     
     try {
       const res = await fetch('/api/manage/move', {
@@ -276,6 +283,13 @@ export default function App() {
     refreshTree();
   };
 
+  const handleTrackAction = (action: 'delete', track: Track) => {
+    if (action === 'delete') {
+      setModalConfig({ isOpen: true, type: 'delete', path: track.path });
+      setModalInput('');
+    }
+  };
+
   const currentMetaTrack = selectedTrack || playingTrack;
 
   return (
@@ -309,7 +323,8 @@ export default function App() {
           style={{ width: sidebarWidth }} 
           className={`relative flex flex-col bg-[#0a0a0a] shrink-0 transition-colors ${sidebarDragOver ? 'ring-2 ring-inset ring-[#ff9900] bg-[#111]' : ''}`}
           onDragOver={(e) => { 
-            if (e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes('sourcePath')) {
+            const types = Array.from(e.dataTransfer.types).map(t => String(t).toLowerCase());
+            if (types.includes('files') || types.includes('sourcepath')) {
               e.preventDefault();
               setSidebarDragOver(true);
             }
@@ -322,8 +337,14 @@ export default function App() {
           onDrop={(e) => {
             e.preventDefault();
             setSidebarDragOver(false);
-            if (e.dataTransfer.types.includes('Files')) {
-              handleSidebarDrop(e);
+            const types = Array.from(e.dataTransfer.types).map(t => String(t).toLowerCase());
+            if (types.includes('files')) {
+              handleSidebarDrop(e, '');
+            } else {
+              const sourcePath = e.dataTransfer.getData('sourcePath');
+              if (sourcePath) {
+                handleFolderMove(sourcePath, '');
+              }
             }
           }}
         >
@@ -413,6 +434,7 @@ export default function App() {
             playingTrack={playingTrack}
             isPlaying={isPlaying}
             onSelectTrack={playSpecificTrack}
+            onTrackAction={handleTrackAction}
           />
 
           <div 
@@ -457,7 +479,7 @@ export default function App() {
       <Modal 
         isOpen={modalConfig.isOpen} 
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
-        title={modalConfig.type === 'create' ? 'New Folder' : modalConfig.type === 'rename' ? 'Rename Folder' : 'Delete Folder'}
+        title={modalConfig.type === 'create' ? 'New Folder' : modalConfig.type === 'rename' ? 'Rename Folder' : 'Delete Item'}
       >
         {modalConfig.type === 'delete' ? (
           <div className="text-[12px] text-white">

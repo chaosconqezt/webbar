@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
         if (picture) {
           res.setHeader('Content-Type', picture.format);
           res.setHeader('Cache-Control', 'public, max-age=3600');
-          return res.send(picture.data);
+          return res.send(Buffer.from(picture.data));
         }
       } catch (e) {
         // Fallback to folder cover logic
@@ -87,7 +87,7 @@ router.get('/', async (req, res) => {
         if (picture) {
           res.setHeader('Content-Type', picture.format);
           res.setHeader('Cache-Control', 'public, max-age=3600');
-          return res.send(picture.data);
+          return res.send(Buffer.from(picture.data));
         }
       } catch (e) {}
     }

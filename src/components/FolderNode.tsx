@@ -48,7 +48,8 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes('sourcePath')) {
+    const types = Array.from(e.dataTransfer.types).map(t => String(t).toLowerCase());
+    if (types.includes('files') || types.includes('sourcepath')) {
       setIsDragOver(true);
     }
   };
@@ -65,7 +66,8 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
     setIsDragOver(false);
     
     // Check if dragging external files
-    if (e.dataTransfer.types.includes('Files')) {
+    const types = Array.from(e.dataTransfer.types).map(t => String(t).toLowerCase());
+    if (types.includes('files')) {
       if (onUploadFiles) {
         onUploadFiles(e, node.path);
       }
