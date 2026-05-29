@@ -10,7 +10,8 @@ const router = Router();
 router.get('/', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
-    const relativePath = (req.query.path as string) || '';
+    const rawPath = req.query.path !== undefined ? String(req.query.path).replace(/\0/g, '') : '';
+    const relativePath = rawPath === '.' ? '' : rawPath;
     const fullPath = path.resolve(MUSIC_DIR, relativePath);
     
     // Prevent directory traversal

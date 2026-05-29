@@ -9,7 +9,7 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   try {
-    const targetPath = (req.query.path as string) || '';
+    const targetPath = req.query.path !== undefined ? String(req.query.path).replace(/\0/g, '') : '';
     const resolvedPath = path.resolve(MUSIC_DIR, targetPath);
     const normalizedMusicDir = path.normalize(MUSIC_DIR);
     

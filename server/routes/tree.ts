@@ -27,9 +27,6 @@ router.get('/', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
     await fsp.mkdir(MUSIC_DIR, { recursive: true });
-    
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const entries = await fsp.readdir(MUSIC_DIR);
 
     const tree = [{
       name: 'music',

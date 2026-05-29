@@ -9,11 +9,14 @@ import { requireAdmin } from '../auth.js';
 const router = Router();
 router.use(requireAdmin);
 
-function getValidPath(res: any, target: string) {
-  const fullPath = path.resolve(MUSIC_DIR, target || '');
+function getValidPath(res: any, target: any) {
+  const safeTarget = target !== undefined ? String(target).replace(/\0/g, '') : '';
+  const fullPath = path.resolve(MUSIC_DIR, safeTarget);
   const normalizedMusicDir = path.normalize(MUSIC_DIR);
   if (!fullPath.startsWith(normalizedMusicDir + path.sep) && fullPath !== normalizedMusicDir) {
-    res.status(403).json({ error: 'Access denied' });
+    if (!res.headersSent) {
+      res.status(403).json({ error: 'Access denied' });
+    }
     return null;
   }
   return fullPath;

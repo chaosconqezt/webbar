@@ -6,7 +6,7 @@ import { MUSIC_DIR } from '../config.js';
 const router = Router();
 
 router.get('/', (req, res) => {
-  const relativePath = req.query.path as string;
+  const relativePath = req.query.path !== undefined ? String(req.query.path).replace(/\0/g, '') : '';
   if (!relativePath) {
     return res.status(400).send('No path provided');
   }
@@ -29,10 +29,10 @@ router.get('/', (req, res) => {
 
   if (range) {
     const parts = range.replace(/bytes=/, "").split("-");
-    const start = parseInt(parts[0], 10);
+    const start = Math.max(0, parseInt(parts[0], 10) || 0);
     const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
-    if (start >= fileSize) {
+    if (start >= fileSize || start > end || isNaN(start) || isNaN(end)) {
       res.status(416).send('Requested range not satisfiable\n' + start + ' >= ' + fileSize);
       return;
     }
