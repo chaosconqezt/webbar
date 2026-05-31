@@ -97,7 +97,7 @@ export default function App() {
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [bottomHeight, setBottomHeight] = useState(200);
 
-  const [modalConfig, setModalConfig] = useState<{isOpen: boolean, type: 'create'|'rename'|'delete', path: string}>({ isOpen: false, type: 'create', path: '' });
+  const [modalConfig, setModalConfig] = useState<{isOpen: boolean, type: 'create'|'rename'|'delete', path: string, paths?: string[]}>({ isOpen: false, type: 'create', path: '' });
   const [modalInput, setModalInput] = useState('');
   
   const [sidebarDragOver, setSidebarDragOver] = useState(false);
@@ -168,6 +168,38 @@ export default function App() {
     }
   }, [selectedPath, refreshKey, deepScanRoot]);
 
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      // Ctrl+A (Select All)
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'a' || e.code === 'KeyA')) {
+        e.preventDefault();
+        setSelectedTracks([...sortedTracks]);
+        if (sortedTracks.length > 0) {
+          setLastSelectedIdx(sortedTracks.length - 1);
+        }
+      }
+      
+      // Delete selected tracks using Delete key
+      if (e.code === 'Delete' && selectedTracks.length > 0 && isAdmin) {
+        e.preventDefault();
+        setModalConfig({ 
+          isOpen: true, 
+          type: 'delete', 
+          path: selectedTracks.length === 1 ? selectedTracks[0].path : '', 
+          paths: selectedTracks.length > 1 ? selectedTracks.map(t => t.path) : undefined 
+        });
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sortedTracks, selectedTracks, isAdmin]);
+
   const playSpecificTrack = (track: Track) => {
     setPlayingTrack(track);
     setSelectedTracks([track]);
@@ -237,11 +269,15 @@ export default function App() {
           body: JSON.stringify({ source: modalConfig.path, destination: newPath })
         });
       } else if (modalConfig.type === 'delete') {
-        res = await fetch('/api/manage/delete', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: modalConfig.path })
-        });
+        const pathsToDelete = modalConfig.paths || [modalConfig.path];
+        for (const p of pathsToDelete) {
+          res = await fetch('/api/manage/delete', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: p })
+          });
+          if (!res.ok) break; // Stop loop if one fails to report the error
+        }
       }
 
       if (res && !res.ok) {
@@ -558,13 +594,13 @@ export default function App() {
             onPlayTrack={playSpecificTrack}
             onTrackAction={(action, affectedTracks) => {
                if (action === 'delete') {
-                 // For now, if we pass multiple, we could open modal to confirm for multiple.
-                 // We will just do the first one or we can enhance modal config.
-                 // Wait, we can pass multiple tracks to delete? Let's just pass one.
-                 // App handles deletion by path only.
-                 // let's just delete the first one for simplicity, or modify ModalConfig to handle arrays.
                  if (affectedTracks.length > 0) {
-                     setModalConfig({ isOpen: true, type: 'delete', path: affectedTracks[0].path });
+                     setModalConfig({ 
+                       isOpen: true, 
+                       type: 'delete', 
+                       path: affectedTracks.length === 1 ? affectedTracks[0].path : '',
+                       paths: affectedTracks.length > 1 ? affectedTracks.map(t => t.path) : undefined 
+                     });
                  }
                }
             }}
@@ -616,7 +652,11 @@ export default function App() {
       >
         {modalConfig.type === 'delete' ? (
           <div className="text-[12px] text-fb-white">
-            Are you sure you want to delete <strong>{modalConfig.path}</strong>?
+            {modalConfig.paths ? (
+              <>Are you sure you want to delete <strong>{modalConfig.paths.length} items</strong>?</>
+            ) : (
+              <>Are you sure you want to delete <strong>{modalConfig.path}</strong>?</>
+            )}
           </div>
         ) : (
           <input 

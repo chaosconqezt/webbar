@@ -133,7 +133,6 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               onContextMenu={(e) => {
                 if (isAdmin && onTrackAction) {
                   e.preventDefault();
-                  // If right-clicking on a currently selected track, apply action to all selected
                   if (isSelected && selectedTracks.length > 1) {
                     onTrackAction('delete', selectedTracks);
                   } else {
@@ -160,23 +159,23 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               <span className={`text-right pr-2 ${isSelected && !isCurrentPlaying ? 'text-fb-white' : (isCurrentPlaying ? '' : 'opacity-80')}`}>
                 {track.duration}
               </span>
-              <span className={`text-center relative group-hover:hidden ${isSelected && !isCurrentPlaying ? 'text-fb-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
-                {track.date}
-              </span>
-              {isAdmin && (
-                <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-fb-error items-center">
-                   <button onClick={(e) => {
-                     e.stopPropagation();
-                     if (onTrackAction) {
-                       if (isSelected && selectedTracks.length > 1) {
-                         onTrackAction('delete', selectedTracks);
-                       } else {
-                         onTrackAction('delete', [track]);
+              <span className={`text-center relative ${isSelected && !isCurrentPlaying ? 'text-fb-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
+                <span className="group-hover:hidden">{track.date}</span>
+                {isAdmin && (
+                  <span className="hidden group-hover:flex justify-end pr-2 gap-2 text-fb-error items-center absolute inset-0 bg-transparent">
+                     <button onClick={(e) => {
+                       e.stopPropagation();
+                       if (onTrackAction) {
+                         if (isSelected && selectedTracks.length > 1) {
+                           onTrackAction('delete', selectedTracks);
+                         } else {
+                           onTrackAction('delete', [track]);
+                         }
                        }
-                     }
-                   }} title="Delete Track">✕</button>
-                </span>
-              )}
+                     }} title="Delete Track" className="hover:text-fb-error-2 px-1">✕</button>
+                  </span>
+                )}
+              </span>
             </div>
           );
         }) : (
