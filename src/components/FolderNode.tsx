@@ -94,23 +94,23 @@ export const FolderNode: React.FC<FolderNodeProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`group flex items-center py-0.5 px-1 cursor-pointer select-none transition-colors ${isSelected ? 'bg-fb-hl text-white' : 'hover:bg-[#1a1a1a]'} ${isDragOver ? 'ring-1 ring-inset ring-[#ff9900] bg-[#222]' : ''}`}
+        className={`group flex items-center py-0.5 px-1 cursor-pointer select-none transition-colors ${isSelected ? 'bg-fb-hl text-fb-white' : 'hover:bg-fb-bg-6'} ${isDragOver ? 'ring-1 ring-inset ring-fb-accent bg-fb-bg-4' : ''}`}
         style={{ paddingLeft: `${level * 12 + 4}px` }}
         onClick={handleClick}
       >
         <span onClick={hasChildren ? toggleExpand : undefined} className="mr-1 opacity-70 hover:opacity-100 flex-shrink-0 w-3 h-3 flex items-center justify-center">
           {hasChildren ? (expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : <span className="w-3" />}
         </span>
-        <Folder size={12} className="mr-1 flex-shrink-0 text-[#aaaaaa]" />
+        <Folder size={12} className="mr-1 flex-shrink-0 text-fb-text-2" />
         <span className="truncate flex-1">{node.name}</span>
         
         {isAdmin && isSelected && onAction && (
           <div className="flex gap-1 pr-1">
-            <button onClick={(e) => { e.stopPropagation(); onAction('create', node.path); }} className="hover:text-[#ff9900]" title="New Folder"><Plus size={12} /></button>
+            <button onClick={(e) => { e.stopPropagation(); onAction('create', node.path); }} className="hover:text-fb-accent" title="New Folder"><Plus size={12} /></button>
             {level > 0 && (
               <>
-                <button onClick={(e) => { e.stopPropagation(); onAction('rename', node.path); }} className="hover:text-[#ff9900]" title="Rename"><Edit2 size={12} /></button>
-                <button onClick={(e) => { e.stopPropagation(); onAction('delete', node.path); }} className="hover:text-[#ff2222]" title="Delete"><Trash2 size={12} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onAction('rename', node.path); }} className="hover:text-fb-accent" title="Rename"><Edit2 size={12} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onAction('delete', node.path); }} className="hover:text-fb-error" title="Delete"><Trash2 size={12} /></button>
               </>
             )}
           </div>

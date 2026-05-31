@@ -119,7 +119,7 @@ export const Visualizer: React.FC<VisualizerProps> = ({ audioRef }) => {
   }, [audioRef]);
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-black flex items-center justify-center p-1">
+    <div ref={containerRef} className="w-full h-full bg-fb-black flex items-center justify-center p-1">
       <canvas 
         ref={canvasRef} 
         width={300} 

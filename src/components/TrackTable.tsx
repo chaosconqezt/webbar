@@ -67,36 +67,36 @@ export const TrackTable: React.FC<TrackTableProps> = ({
 
   const Resizer = ({ idx }: { idx: number }) => (
     <div 
-      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#ff9900] opacity-50 z-10"
+      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-fb-accent opacity-50 z-10"
       onMouseDown={(e) => handleResize(idx, e)}
       onClick={(e) => e.stopPropagation()}
     />
   );
 
   return (
-    <section className="flex-1 overflow-hidden flex flex-col bg-[#0a0a0a]">
+    <section className="flex-1 overflow-hidden flex flex-col bg-fb-bg">
       {/* Table Header */}
       <div 
         style={gridStyle}
-        className="grid border-b border-[#333333] bg-[#111111] text-[#888888] font-bold px-2 py-1 shrink-0 select-none overflow-hidden"
+        className="grid border-b border-fb-border bg-fb-bg-3 text-fb-text-4 font-bold px-2 py-1 shrink-0 select-none overflow-hidden"
       >
           <span className="text-center relative"><Resizer idx={0} /></span>
-          <span className="text-right pr-2 cursor-pointer hover:text-white relative" onClick={() => onRequestSort('trackNo')}>
+          <span className="text-right pr-2 cursor-pointer hover:text-fb-white relative" onClick={() => onRequestSort('trackNo')}>
             #{renderSortArrow('trackNo')}<Resizer idx={1} />
           </span>
-          <span className="cursor-pointer hover:text-white relative" onClick={() => onRequestSort('artist')}>
+          <span className="cursor-pointer hover:text-fb-white relative" onClick={() => onRequestSort('artist')}>
             Artist{renderSortArrow('artist')}<Resizer idx={2} />
           </span>
-          <span className="cursor-pointer hover:text-white relative" onClick={() => onRequestSort('title')}>
+          <span className="cursor-pointer hover:text-fb-white relative" onClick={() => onRequestSort('title')}>
             Title{renderSortArrow('title')}<Resizer idx={3} />
           </span>
-          <span className="cursor-pointer hover:text-white relative" onClick={() => onRequestSort('album')}>
+          <span className="cursor-pointer hover:text-fb-white relative" onClick={() => onRequestSort('album')}>
             Album{renderSortArrow('album')}<Resizer idx={4} />
           </span>
-          <span className="text-right cursor-pointer hover:text-white relative pr-2" onClick={() => onRequestSort('rawDuration')}>
+          <span className="text-right cursor-pointer hover:text-fb-white relative pr-2" onClick={() => onRequestSort('rawDuration')}>
             Length{renderSortArrow('rawDuration')}<Resizer idx={5} />
           </span>
-          <span className="text-center cursor-pointer hover:text-white relative" onClick={() => onRequestSort('date')}>
+          <span className="text-center cursor-pointer hover:text-fb-white relative" onClick={() => onRequestSort('date')}>
             Date{renderSortArrow('date')}
           </span>
       </div>
@@ -123,7 +123,7 @@ export const TrackTable: React.FC<TrackTableProps> = ({
                 }
               }}
               style={gridStyle}
-              className={`group grid px-2 border-b border-[#1a1a1a] ${isSelected ? 'bg-[#222222]' : 'hover:bg-[#1a1a1a] cursor-grab active:cursor-grabbing'} ${isCurrentPlaying ? 'text-[#ff9900] font-medium' : (isSelected ? 'text-white' : 'text-[#aaaaaa]')}`}
+              className={`group grid px-2 border-b border-fb-border-2 ${isSelected ? 'bg-fb-bg-4' : 'hover:bg-fb-bg-6 cursor-grab active:cursor-grabbing'} ${isCurrentPlaying ? 'text-fb-accent font-medium' : (isSelected ? 'text-fb-white' : 'text-fb-text-2')}`}
               onMouseDown={(e) => {
                 onSelectTrack(track, idx, e);
               }}
@@ -142,10 +142,10 @@ export const TrackTable: React.FC<TrackTableProps> = ({
                 }
               }}
             >
-              <span className="flex justify-center items-center text-[#ff9900]">
+              <span className="flex justify-center items-center text-fb-accent">
                 {isCurrentPlaying ? (isPlaying ? '▶' : '⏸') : ''}
               </span>
-              <span className={`text-right pr-2 ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
+              <span className={`text-right pr-2 ${isSelected && !isCurrentPlaying ? 'text-fb-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
                 {track.trackNo}
               </span>
               <span className="truncate pr-2">
@@ -154,17 +154,17 @@ export const TrackTable: React.FC<TrackTableProps> = ({
               <span className="truncate pr-2">
                   {track.title}
               </span>
-              <span className={`truncate pr-2 ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-80')}`}>
+              <span className={`truncate pr-2 ${isSelected && !isCurrentPlaying ? 'text-fb-white' : (isCurrentPlaying ? '' : 'opacity-80')}`}>
                 {track.album}
               </span>
-              <span className={`text-right pr-2 ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-80')}`}>
+              <span className={`text-right pr-2 ${isSelected && !isCurrentPlaying ? 'text-fb-white' : (isCurrentPlaying ? '' : 'opacity-80')}`}>
                 {track.duration}
               </span>
-              <span className={`text-center relative group-hover:hidden ${isSelected && !isCurrentPlaying ? 'text-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
+              <span className={`text-center relative group-hover:hidden ${isSelected && !isCurrentPlaying ? 'text-fb-white' : (isCurrentPlaying ? '' : 'opacity-60')}`}>
                 {track.date}
               </span>
               {isAdmin && (
-                <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-[#ff2222] items-center">
+                <span className="text-center hidden group-hover:flex justify-end pr-2 gap-2 text-fb-error items-center">
                    <button onClick={(e) => {
                      e.stopPropagation();
                      if (onTrackAction) {
@@ -180,7 +180,7 @@ export const TrackTable: React.FC<TrackTableProps> = ({
             </div>
           );
         }) : (
-          <div className="p-4 text-[#555] italic">Folder is empty or contains no supported audio files.</div>
+          <div className="p-4 text-fb-text-6 italic">Folder is empty or contains no supported audio files.</div>
         )}
       </div>
     </section>
